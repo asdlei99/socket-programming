@@ -16,11 +16,11 @@
 |SO_DISCOPTLEN||yes|DWORD|设定发送建立连接请求包时附带的断线选项数据长度，这个选项由传统的协议如DECNet、OSI TP4以及其他所使用。Windows TCP/IP协议不支持该选项。|Not Supported in TCP/IP|Unknown|Not Supported|
 |SO_DEBUG|yes|yes|DWORD (boolean)|开启DEBUG输出。Windows目前不输出任何调试信息。|Supported|Supported|Supported|
 |SO_DONTLINGER|yes|yes|DWORD (boolean)|返回或设定Socket在close之后是否立即释放，非零即立即释放Socket。仅对可靠的、有连接传输层协议有效。|Supported|Unknown|Not Supported|
-|SO_DONTROUTE|yes|yes|DWORD (boolean)|返回或设定数据是否直接发往Socket绑定的接口而不查询路由表Indicates that outgoing data should be sent on whatever interface the socket is bound to and not a routed on some other interface. This option is only Valid for message-oriented protocols. Microsoft providers silently ignore this option and always consult the routing table to find the appropriate outgoing interface.|
-|SO_ERROR|yes||DWORD|Returns the last error code on this socket. This per-socket error code is not always immediately set.|
-|SO_EXCLUSIVEADDRUSE|yes|yes|DWORD (boolean)|Prevents any other socket from binding to the same address and port. This option must be set before calling the bind function. See the SO_EXCLUSIVEADDRUSE reference for more information.|
-|SO_GROUP_ID|yes||unsigned int|This socket option is reserved and should not be used.|
-|SO_GROUP_PRIORITY|yes|yes|int|This socket option is reserved and should not be used.|
+|SO_DONTROUTE|yes|yes|DWORD (boolean)|返回或设定数据是否直接发往Socket绑定的接口且不经过路由。Windows将忽略此项。|Supported|Supported|Supported|
+|SO_ERROR|yes||DWORD|返回本Socket的上一次错误代码|Supported|Unknown|Supported|
+|SO_EXCLUSIVEADDRUSE|yes|yes|DWORD (boolean)|阻止其他Socket绑定到相同的地址和端口。Windows下调用bind之前必须将之置为Enable。|Supported|Unknown|Not Supported|
+|SO_GROUP_ID|yes||unsigned int|该选项保留且不应该使用。|Supported|Unknown|Not Supported|
+|SO_GROUP_PRIORITY|yes|yes|int|该选项保留且不应该使用。|Supported|Unknown|Not Supported|
 |SO_KEEPALIVE|yes|yes|DWORD (boolean)|Enables keep-alive for a socket connection. Valid only for protocols that support the notion of keep-alive (connection-oriented protocols). For TCP, the default keep-alive timeout is 2 hours and the keep-alive interval is 1 second. The default number of keep-alive probes varies based on the version of Windows. See the SO_KEEPALIVE reference for more information.|
 |SO_LINGER|yes|yes|struct linger|Indicates the state of the linger structure associated with a socket. If the l_onoff member of the linger structure is nonzero, a socket remains open for a specified amount of time after a closesocket function call to enable queued data to be sent. The amount of time, in seconds, to remain open is specified in the l_linger member of the linger structure. This option is only valid for reliable, connection-oriented protocols.|
 |SO_MAX_MSG_SIZE|yes||DWORD|Returns the maximum outbound message size for message-oriented sockets supported by the protocol. Has no meaning for stream-oriented sockets.|
