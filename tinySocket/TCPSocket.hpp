@@ -6,6 +6,45 @@ namespace tinySocket {
 
     template<int _AF>
     class TCPSocket : public Socket<_AF, SOCK_STREAM, IPPROTO_TCP> {
+    private:
+
+        template<int>
+        inline void Bind(const TCHAR* LocalAddress, u_short LocalPort) const throw(DWORD);
+
+        template<>
+        inline void Bind<AF_INET>(const TCHAR* LocalAddress, u_short LocalPort) const throw(DWORD) {
+            int status;
+            sockaddr_in bind_info = { };
+            bind_info.sin_family = AF_INET;
+            bind_info.sin_port = htons(LocalPort);
+            status = InetPton(AF_INET, LocalAddress, &bind_info.sin_addr);
+            if (status == 0)
+                throw WSAEADDRNOTAVAIL;
+            else if (status == -1)
+                throw WSAGetLastError();
+
+            status = ::bind(_descriptor, reinterpret_cast<sockaddr*>(&bind_info), sizeof(sockaddr_in));
+            if (status != 0)
+                throw WSAGetLastError();
+        }
+
+        template<>
+        inline void Bind<AF_INET6>(const TCHAR* LocalAddress, u_short LocalPort) const throw(DWORD) {
+            int status;
+            sockaddr_in6 bind_info = { };
+            bind_info.sin6_family = AF_INET6;
+            bind_info.sin6_port = htons(LocalPort);
+            status = InetPton(AF_INET6, LocalAddress, &bind_info.sin6_addr);
+            if (status == 0)
+                throw WSAEADDRNOTAVAIL;
+            else if (status == -1)
+                throw WSAGetLastError();
+
+            status = ::bind(_descriptor, reinterpret_cast<sockaddr*>(&bind_info), sizeof(sockaddr_in6));
+            if (status != 0)
+                throw WSAGetLastError();
+        }
+
     protected:
 
         TCPSocket(SOCKET new_descriptor) : Socket(new_descriptor) { }
@@ -27,34 +66,7 @@ namespace tinySocket {
         }
 
         void Bind(const TCHAR* LocalAddress, u_short LocalPort) const throw(DWORD) {
-            int Status;
-
-            if (_AF == AF_INET) {
-                sockaddr_in bind_info;
-                bind_info.sin_family = _AF;
-                bind_info.sin_port = htons(LocalPort);
-                Status = InetPton(_AF, LocalAddress, &bind_info.sin_addr);
-                if (Status == 0)
-                    throw WSAEADDRNOTAVAIL;
-                else if (Status == -1)
-                    throw WSAGetLastError();
-
-                Status = ::bind(_descriptor, reinterpret_cast<sockaddr*>(&bind_info), sizeof(sockaddr_in));
-            } else if (_AF == AF_INET6) {
-                sockaddr_in6 bind_info;
-                bind_info.sin6_family = _AF;
-                bind_info.sin6_port = htons(LocalPort);
-                Status = InetPton(_AF, LocalAddress, &bind_info.sin6_addr);
-                if (Status == 0)
-                    throw WSAEADDRNOTAVAIL;
-                else if (Status == -1)
-                    throw WSAGetLastError();
-
-                Status = ::bind(_descriptor, reinterpret_cast<sockaddr*>(&bind_info), sizeof(sockaddr_in6));
-            }
-
-            if (Status != 0)
-                throw WSAGetLastError();
+            Bind<_AF>(LocalAddress, LocalPort);
         }
 
         void SetKeepAlive(bool open) const throw(DWORD) {
@@ -122,6 +134,54 @@ namespace tinySocket {
         TCPCommunicateSocket<_AF>& operator=(TCPCommunicateSocket<_AF>&& other) {
             TCPSocket<_AF>::operator=(static_cast<TCPSocket<_AF>&&>(other));
             return *this;
+        }
+
+        void Connect(const TCHAR* HostName, u_short Port) const throw(DWORD) {
+            ADDRINFOT hints = { };
+            hints.ai_family = _AF;
+            hints.ai_socktype = SOCK_STREAM;
+            hints.ai_protocol = IPPROTO_TCP;
+            
+            ADDRINFOT* result = nullptr;
+
+            int status = GetAddrInfo(HostName, nullptr, &hints, &result);
+            if (status != 0)
+                throw status;
+
+            if (_AF == AF_INET) {
+                reinterpret_cast<sockaddr_in*>(result->ai_addr)->sin_port = htons(Port);
+            } else if (_AF == AF_INET6) {
+                reinterpret_cast<sockaddr_in6*>(result->ai_addr)->sin6_port = htons(Port);
+            }
+
+            status = ::connect(_descriptor, result->ai_addr, result->ai_addrlen);
+            FreeAddrInfo(result);
+            if (status != 0)
+                throw WSAGetLastError();
+        }
+
+        void Connect(const TCHAR* HostName, const TCHAR* ServiceName) const throw(DWORD) {
+            ADDRINFOT hints = { };
+            hints.ai_family = _AF;
+            hints.ai_socktype = SOCK_STREAM;
+            hints.ai_protocol = IPPROTO_TCP;
+
+            ADDRINFOT* result = nullptr;
+
+            int status = GetAddrInfo(HostName, ServiceName, &hints, &result);
+            if (status != 0)
+                throw status;
+
+            if (_AF == AF_INET) {
+                reinterpret_cast<sockaddr_in*>(result->ai_addr)->sin_port = htons(Port);
+            } else if (_AF == AF_INET6) {
+                reinterpret_cast<sockaddr_in6*>(result->ai_addr)->sin6_port = htons(Port);
+            }
+
+            status = ::connect(_descriptor, result->ai_addr, result->ai_addrlen);
+            FreeAddrInfo(result);
+            if (status != 0)
+                throw WSAGetLastError();
         }
 
         int Send(const void* buffer, int length, int flag = 0) const throw(DWORD) {
