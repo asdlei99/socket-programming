@@ -1,6 +1,5 @@
 #pragma once
 #include "Socket.hpp"
-#include <tchar.h>
 
 namespace tinySocket {
 

@@ -55,11 +55,6 @@ namespace tinySocket {
             SocketAddr<_AF> from;
         };
 
-        struct SendInfo {
-            int length;
-            SocketAddr<_AF> to;
-        };
-
         UDPSocket() : Socket() { }
 
         UDPSocket(const UDPSocket<_AF>&) = delete;
@@ -150,15 +145,41 @@ namespace tinySocket {
             return sent_length;
         }
 
-        int SendTo(const void* buffer, const SendInfo& send_info, int flag = 0) const throw(DWORD) {
+        int SendTo(const void* buffer, int length, const SocketAddr<_AF>& to, int flag = 0) const throw(DWORD) {
             int sent_length;
             sent_length = ::sendto(_descriptor,
-                                   reinterpret_cast<const char*>(buffer), send_info.length,
+                                   reinterpret_cast<const char*>(buffer), length,
                                    flag,
-                                   reinterpret_cast<const sockaddr*>(&send_info.to), sizeof(send_info.to));
+                                   reinterpret_cast<const sockaddr*>(&to), sizeof(to));
             if (sent_length == SOCKET_ERROR)
                 throw WSAGetLastError();
             return sent_length;
+        }
+
+        int SendTo(const void* buffer, int length, const TCHAR* hostname, u_short port, int flag /* = 0) const throw(DWORD */) {
+            ADDRINFOT hints = { };
+            hints.ai_family = _AF;
+            hints.ai_socktype = SOCK_DGRAM;
+            hints.ai_protocol = IPPROTO_UDP;
+
+            ADDRINFOT* result = nullptr;
+
+            int status = GetAddrInfo(hostname, nullptr, &hints, &result);
+            if (status != 0)
+                throw status;
+
+            if (_AF == AF_INET) {
+                reinterpret_cast<sockaddr_in*>(result->ai_addr)->sin_port = htons(Port);
+            } else if (_AF == AF_INET6) {
+                reinterpret_cast<sockaddr_in6*>(result->ai_addr)->sin6_port = htons(Port);
+            }
+
+            status = ::sendto(_descriptor, buffer, length, flag, result->ai_addr, result->ai_addrlen);
+            FreeAddrInfo(result);
+
+            if (status != SOCKET_ERROR)
+                throw WSAGetLastError();
+            return status;
         }
 
         int Receive(void* buffer, int length, int flag = 0) const throw(DWORD) {
@@ -168,7 +189,7 @@ namespace tinySocket {
             return received_length;
         }
 
-        ReceiveInfo ReceiveFrom(void* buffer, int length, const SocketAddr<_AF>& to, int flag = 0) const throw(DWORD) {
+        ReceiveInfo ReceiveFrom(void* buffer, int length, int flag = 0) const throw(DWORD) {
             ReceiveInfo ret = { };
             ret.length = ::recvfrom(_descriptor,
                                     reinterpret_cast<char*>(buffer), length,

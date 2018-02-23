@@ -10,10 +10,38 @@ namespace tinySocket {
     struct SocketAddr;
 
     template<>
-    struct SocketAddr<AF_INET> : public sockaddr_in { };
+    struct SocketAddr<AF_INET> : public sockaddr_in { 
+    
+        SocketAddr() { }
+
+        SocketAddr(const TCHAR* Address, u_short Port) {
+            sin_family = AF_INET;
+            sin_port = htons(Port);
+            int status = InetPton(AF_INET, Address, &sin_addr);
+            if (status == 0)
+                throw WSAEADDRNOTAVAIL;
+            else if (status == -1)
+                throw WSAGetLastError();
+        }
+
+    };
 
     template<>
-    struct SocketAddr<AF_INET6> : public sockaddr_in6 { };
+    struct SocketAddr<AF_INET6> : public sockaddr_in6 {
+
+        SocketAddr() { }
+
+        SocketAddr(const TCHAR* Address, u_short Port) {
+            sin6_family = AF_INET6;
+            sin6_port = htons(Port);
+            int status = InetPton(AF_INET6, Address, &sin6_addr);
+            if (status == 0)
+                throw WSAEADDRNOTAVAIL;
+            else if (status == -1)
+                throw WSAGetLastError();
+        }
+
+    };
 
     template<int _AF, int _SocketType, int _Protocol>
     class Socket {
